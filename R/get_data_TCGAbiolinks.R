@@ -4,6 +4,7 @@
 rm(list = ls())
 
 # BiocManager::install("TCGAbiolinks")
+# BiocManager::install("EDASeq")
 
 library(TCGAbiolinks)
 library(SummarizedExperiment)
@@ -98,8 +99,11 @@ data <-
 # Default important variants: "Frame_Shift_Del", "Missense_Mutation", "Nonsense_Mutation", etc.
 # Only relevant if you are working with somatic mutation data.
 
-# 데이터 정보 확인
+# Data
+load("./data/TCGA_LUAD_example.RData")
+
 data
+dim(data)
 head(colnames(data)) # Sample ID
 head(rownames(data)) # Gene ID
 SummarizedExperiment::assayNames(data) # expression matrix name
@@ -112,6 +116,33 @@ SummarizedExperiment::colData(data)
 
 # Feature (gene) information (rowData)
 SummarizedExperiment::rowData(data)
+
+# Apply basic preprocessing
+data_prep <- TCGAbiolinks::TCGAanalyze_Preprocessing(data, cor.cut = 0.6)
+dim(data_prep)
+
+# Normalize expression data
+expr_norm <- TCGAbiolinks::TCGAanalyze_Normalization(
+    tabDF = data_prep,
+    geneInfo = TCGAbiolinks::geneInfoHT, # TCGAbiolinks::geneInfo
+    method = "gcContent"
+)
+dim(expr_norm)
+
+# Filter low-expressed genes
+expr_filt <- TCGAbiolinks::TCGAanalyze_Filtering(
+    tabDF = expr_norm,
+    method = "quantile",
+    qnt.cut = 0.25
+)
+dim(expr_filt)
+
+# Apply batch correction
+# expr_batch_corrected <- TCGAbiolinks::TCGAbatch_Correction(
+#     tabDF = expr_filt,
+#     batch.factor = SummarizedExperiment::colData(data)$center
+# )
+# dim(expr_batch_corrected)
 
 # Data from linkedOmics
 TCGA_LUAD_protein <- TCGAbiolinks::getLinkedOmicsData(
